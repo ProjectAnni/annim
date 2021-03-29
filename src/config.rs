@@ -1,10 +1,13 @@
 use crate::db::AnnivDbConfig;
 use std::path::Path;
 use serde::Deserialize;
+use crate::services::info::AnnivSiteInfo;
 
 #[derive(Deserialize)]
 pub struct AnnivConfig {
-    pub(crate) database: AnnivDbConfig,
+    pub database: AnnivDbConfig,
+    #[serde(rename = "site")]
+    pub site_info: AnnivSiteInfo,
 }
 
 impl AnnivConfig {

@@ -1,2 +1,2 @@
-mod info;
-mod response;
+pub mod info;
+pub mod response;

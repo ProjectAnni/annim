@@ -1,10 +1,10 @@
 use actix_web::{error, HttpResponse};
-use actix_web::http::{StatusCode, header};
+use actix_web::http::StatusCode;
 use serde::Serialize;
 use std::fmt::{Display, Formatter};
 use thiserror::Error;
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, Clone)]
 pub enum Error {
     FatalError,
     DatabaseConnectionError,
@@ -75,33 +75,49 @@ impl error::ResponseError for Error {
     }
 
     fn error_response(&self) -> HttpResponse {
-        let body: AnnivResponse<u8> = AnnivResponse {
-            status: self.as_u32(),
+        AnnivResponse::error(self.clone())
+    }
+}
+
+#[derive(Serialize)]
+pub struct AnnivResponse<T> {
+    status: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    message: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    data: Option<T>,
+}
+
+impl<T: Serialize> AnnivResponse<T> {
+    pub fn data(data: T) -> HttpResponse {
+        HttpResponse::Ok().json(AnnivResponse {
+            status: 0,
+            message: None,
+            data: Some(data),
+        })
+    }
+}
+
+impl AnnivResponse<()> {
+    pub fn ok() -> HttpResponse {
+        HttpResponse::NoContent().finish()
+    }
+
+    pub fn error(error: Error) -> HttpResponse {
+        let body: AnnivResponse<()> = AnnivResponse {
+            status: error.as_u32(),
             message: None,
             data: None,
         };
         HttpResponse::Ok().json(body)
     }
-}
 
-#[derive(Serialize)]
-pub(crate) struct AnnivResponse<T> {
-    status: u32,
-    message: Option<String>,
-    data: Option<T>,
-}
-
-impl<T: Serialize> AnnivResponse<T> {
-    pub(crate) fn Ok(data: Option<T>) -> HttpResponse {
-        match data {
-            None => HttpResponse::NoContent().finish(),
-            Some(data) => {
-                HttpResponse::Ok().json(AnnivResponse {
-                    status: 0,
-                    message: None,
-                    data: Some(data),
-                })
-            }
-        }
+    pub fn error_message(error: Error, message: String) -> HttpResponse {
+        let body: AnnivResponse<()> = AnnivResponse {
+            status: error.as_u32(),
+            message: Some(message),
+            data: None,
+        };
+        HttpResponse::Ok().json(body)
     }
 }
