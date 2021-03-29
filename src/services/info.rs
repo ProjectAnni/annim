@@ -13,6 +13,12 @@ pub struct AnnivSiteInfo {
     features: Vec<String>,
 }
 
+impl AnnivSiteInfo {
+    pub fn has_feature(&self, feature: &str) -> bool {
+        self.features.iter().any(|f| f == feature)
+    }
+}
+
 fn protocol_version() -> String {
     "1".to_owned()
 }

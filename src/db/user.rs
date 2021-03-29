@@ -1,6 +1,8 @@
 use crate::db::AnnivPool;
 use sqlx::any::AnyKind;
 use crate::services::response::Error;
+use sqlx::{Executor, Any};
+use crate::models::user::UserInfo;
 
 impl AnnivPool {
     pub async fn create_table_user(&self) -> Result<(), Error> {
@@ -21,7 +23,7 @@ impl AnnivPool {
                     .await
                     .map_err(|e| {
                         log::error!("{:?}", e);
-                        Error::DatabaseInsertError
+                        Error::DatabaseWriteError
                     })?;
             }
             AnyKind::MySql => {
@@ -42,7 +44,7 @@ impl AnnivPool {
                     .await
                     .map_err(|e| {
                         log::error!("{:?}", e);
-                        Error::DatabaseInsertError
+                        Error::DatabaseWriteError
                     })?;
             }
             _ => unimplemented!(),
@@ -50,20 +52,30 @@ impl AnnivPool {
         Ok(())
     }
 
-    pub async fn create_user(&self, username: &str, password: &str, email: &str, nickname: &str, avatar: &str) -> Result<(), Error> {
-        sqlx::query(r#"
-        INSERT INTO anniv_user(`email`, `username`, `password`, `nickname`, `avatar`) VALUES (?, ?, ?, ?, ?);
-        "#)
+    pub async fn create_user(executor: impl Executor<'_, Database=Any>,
+                             username: &str, password: &str, email: &str, nickname: &str, avatar: &str, invitor: Option<&str>) -> Result<(), Error> {
+        match invitor {
+            None => {
+                sqlx::query(r#"
+                INSERT INTO anniv_user(`email`, `username`, `password`, `nickname`, `avatar`) VALUES (?, ?, ?, ?, ?);
+                "#)
+            }
+            Some(invitor) => {
+                sqlx::query(r#"
+                INSERT INTO anniv_user(`invitor`, `email`, `username`, `password`, `nickname`, `avatar`) VALUES (?, ?, ?, ?, ?, ?);
+                "#).bind(invitor)
+            }
+        }
             .bind(email)
             .bind(username)
             .bind(password)
             .bind(nickname)
             .bind(avatar)
-            .execute(&self.pool)
+            .execute(executor)
             .await
             .map_err(|e| {
                 log::error!("{:?}", e);
-                Error::DatabaseInsertError
+                Error::DatabaseWriteError
             })?;
         Ok(())
     }
@@ -71,7 +83,7 @@ impl AnnivPool {
     pub async fn email_username_used(&self, email: Option<&str>, username: Option<&str>) -> Result<(), Error> {
         if let Some(email) = email {
             let (count, ): (i64, ) = sqlx::query_as(r#"
-        SELECT count(*) FROM anniv_user WHERE email = ?
+        SELECT count(*) FROM anniv_user WHERE `email` = ?
         "#)
                 .bind(email)
                 .fetch_one(&self.pool)
@@ -100,7 +112,18 @@ impl AnnivPool {
                 return Err(Error::UsernameUnavailable);
             }
         }
-
         Ok(())
+    }
+
+    pub async fn query_user(&self, email: &str) -> Result<UserInfo, Error> {
+        let info = sqlx::query_as::<_, UserInfo>("SELECT * from anniv_user WHERE `email` = ?")
+            .bind(email)
+            .fetch_one(&self.pool)
+            .await
+            .map_err(|e| {
+                log::error!("{:?}", e);
+                Error::DatabaseReadError
+            })?;
+        Ok(info)
     }
 }

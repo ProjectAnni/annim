@@ -16,4 +16,8 @@ impl AnnivConfig {
         let result = toml::from_str(&string)?;
         Ok(result)
     }
+
+    pub fn has_feature(&self, feature: &str) -> bool {
+        self.site_info.has_feature(feature)
+    }
 }

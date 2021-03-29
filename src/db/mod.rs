@@ -1,4 +1,6 @@
 mod user;
+mod feature_2fa;
+mod feature_invite;
 
 use sqlx::{Pool, Any};
 use sqlx::any::AnyKind;
@@ -32,6 +34,12 @@ impl AnnivPool {
             pool,
         };
         pool.create_table_user().await?;
+        pool.create_table_2fa().await?;
+        pool.create_table_invite().await?;
         Ok(pool)
+    }
+
+    pub fn pool(&self) -> &Pool<Any> {
+        &self.pool
     }
 }

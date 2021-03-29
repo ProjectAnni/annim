@@ -9,7 +9,7 @@ pub enum Error {
     FatalError,
     DatabaseConnectionError,
 
-    DatabaseInsertError,
+    DatabaseWriteError,
     DatabaseReadError,
 
     ContentNotFound,
@@ -31,6 +31,20 @@ pub enum Error {
 
     MaximiumTokenCount,
     TokenNotFound,
+
+    // feature: invite
+    InviteSystemNotEnabled,
+    InvalidInviteCode,
+    InvitedUserMismatch,
+    InviteCodeMaximiumUsed,
+
+    // feature: 2fa
+    NotEnabled2FA,
+    Invalid2FACode,
+    Invalid2FASecret,
+
+    // feature: close
+    RegisterClosed,
 }
 
 impl Error {
@@ -39,7 +53,7 @@ impl Error {
             Error::FatalError => 900000,
             Error::DatabaseConnectionError => 900001,
 
-            Error::DatabaseInsertError => 901000,
+            Error::DatabaseWriteError => 901000,
             Error::DatabaseReadError => 901001,
 
             Error::ContentNotFound => 902000,
@@ -61,6 +75,17 @@ impl Error {
 
             Error::MaximiumTokenCount => 104000,
             Error::TokenNotFound => 104001,
+
+            Error::InviteSystemNotEnabled => 201000,
+            Error::InvalidInviteCode => 201001,
+            Error::InvitedUserMismatch => 201002,
+            Error::InviteCodeMaximiumUsed => 201003,
+
+            Error::NotEnabled2FA => 202000,
+            Error::Invalid2FACode => 202001,
+            Error::Invalid2FASecret => 202002,
+
+            Error::RegisterClosed => 203000,
         }
     }
 }
