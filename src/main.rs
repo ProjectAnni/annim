@@ -29,6 +29,8 @@ async fn main() -> anyhow::Result<()> {
             .service(
                 web::scope("/api")
                     .service(services::info::info)
+                    .service(services::user::register)
+                    .service(services::user::register_check)
             )
     })
         .bind("localhost:6655")?

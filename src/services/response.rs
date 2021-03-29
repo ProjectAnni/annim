@@ -14,6 +14,7 @@ pub enum Error {
 
     ContentNotFound,
     NoPermission,
+    InvalidParameters,
 
     InMaintainance,
 
@@ -43,6 +44,7 @@ impl Error {
 
             Error::ContentNotFound => 902000,
             Error::NoPermission => 902001,
+            Error::InvalidParameters => 902002,
 
             Error::InMaintainance => 101000,
 

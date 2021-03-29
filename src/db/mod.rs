@@ -1,3 +1,5 @@
+mod user;
+
 use sqlx::{Pool, Any};
 use sqlx::any::AnyKind;
 use serde::Deserialize;
@@ -25,9 +27,11 @@ impl AnnivPool {
             .max_connections(config.max_connections)
             .connect(&config.uri)
             .await?;
-        Ok(AnnivPool {
+        let pool = AnnivPool {
             kind: AnyKind::from_str(&config.uri)?,
             pool,
-        })
+        };
+        pool.create_table_user().await?;
+        Ok(pool)
     }
 }
