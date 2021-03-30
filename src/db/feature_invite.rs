@@ -10,10 +10,13 @@ impl AnnivPool {
             AnyKind::MySql => {
                 sqlx::query(r#"
                 CREATE TABLE IF NOT EXISTS anniv_invite (
-                    code     CHAR(36) PRIMARY KEY,
-                    invitor  CHAR(36) NOT NULL,
-                    invitee  VARCHAR(32),
-                    use_left INT DEFAULT 1
+                    `id`       INT NOT NULL AUTO_INCREMENT,
+                    `code`     CHAR(36) NOT NULL,
+                    `invitor`  CHAR(36) NOT NULL,
+                    `invitee`  VARCHAR(32),
+                    `use_left` INT DEFAULT 1,
+                    PRIMARY KEY(`id`),
+                    KEY(`code`)
                 ) DEFAULT CHARSET=utf8mb4;
                 "#).execute(&self.pool).await.map_err(|e| {
                     log::error!("{:?}", e);
@@ -26,7 +29,7 @@ impl AnnivPool {
     }
 
     pub async fn invite_validate_invitor(&self, email: &str, code: &str) -> Result<String, Error> {
-        let (invitor, use_left, ): (String, i64, ) = sqlx::query_as(r#"SELECT invitor, use_left FROM anniv_invite WHERE code = ? AND ( ISNULL(invitee) OR invitee = ? );"#)
+        let (invitor, use_left, ): (String, i64, ) = sqlx::query_as(r#"SELECT `invitor`, `use_left` FROM anniv_invite WHERE `code` = ? AND ( ISNULL(`invitee`) OR `invitee` = ? );"#)
             .bind(code)
             .bind(email)
             .fetch_one(&self.pool)
@@ -43,7 +46,7 @@ impl AnnivPool {
     }
 
     pub async fn invite_use(executor: impl Executor<'_, Database=Any>, code: &str) -> Result<(), Error> {
-        let affected = sqlx::query(r#"UPDATE anniv_invite SET use_left = use_left - 1 WHERE code = >"#)
+        let affected = sqlx::query(r#"UPDATE anniv_invite SET `use_left` = `use_left` - 1 WHERE `code` = ?"#)
             .bind(code)
             .execute(executor)
             .await

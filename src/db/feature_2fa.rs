@@ -10,8 +10,10 @@ impl AnnivPool {
             AnyKind::MySql => {
                 sqlx::query(r#"
                 CREATE TABLE IF NOT EXISTS anniv_2fa (
-                    user_id  CHAR(36) PRIMARY KEY,
-                    secret   VARCHAR(32) NOT NULL
+                    `id`       INT NOT NULL AUTO_INCREMENT,
+                    `user_id`  CHAR(36) NOT NULL,
+                    `secret`   VARCHAR(32) NOT NULL,
+                    PRIMARY KEY(`id`)
                 ) DEFAULT CHARSET=utf8mb4;
                 "#).execute(&self.pool).await.map_err(|e| {
                     log::error!("{:?}", e);
@@ -23,9 +25,9 @@ impl AnnivPool {
         Ok(())
     }
 
-    pub async fn create_2fa(executor: impl Executor<'_, Database=Any>, id: &str, secret: &str) -> Result<(), Error> {
-        sqlx::query(r#"INSERT INTO anniv_2fa(user_id, secret) VALUES (?, ?);"#)
-            .bind(id)
+    pub async fn create_2fa(executor: impl Executor<'_, Database=Any>, user_id: &str, secret: &str) -> Result<(), Error> {
+        sqlx::query(r#"INSERT INTO anniv_2fa(`user_id`, `secret`) VALUES (?, ?);"#)
+            .bind(user_id)
             .bind(secret)
             .execute(executor)
             .await

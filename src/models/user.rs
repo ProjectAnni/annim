@@ -2,7 +2,7 @@ use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, sqlx::FromRow)]
 pub struct UserInfo {
-    id: String,
+    user_id: String,
     username: String,
     email: String,
     nickname: String,

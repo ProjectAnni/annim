@@ -4,6 +4,7 @@ use crate::db::AnnivPool;
 use crate::models::response::{AnnivResponse, Error};
 use crate::models::features::{FEATURE_2FA, FEATURE_CLOSE, FEATURE_INVITE};
 use crate::models::user::{UserRegisterRequest, UserRegisterCheckRequest};
+use crate::models::common::IdOnly;
 
 #[post("/user/register")]
 pub async fn register(register: web::Json<UserRegisterRequest>, state: web::Data<AppState>) -> Result<impl Responder, Error> {
@@ -51,13 +52,16 @@ pub async fn register(register: web::Json<UserRegisterRequest>, state: web::Data
         None
     };
 
-    // use transaction here to make sure user is registered and 2fa is enabled
+    // use transaction here to make sure:
+    // 1. user is registered
+    // 2. 2fa is enabled if secret is provided
+    // 3. invite code is used if provided and valid
     let mut tr = state.pool.pool().begin().await.map_err(|_| Error::DatabaseConnectionError)?;
     if let Some(code) = register.invite_code() {
         // use invite code
         AnnivPool::invite_use(&mut tr, code.as_ref()).await?;
     }
-    // create user and return user info
+    // create user and return user id
     let user_uuid = AnnivPool::create_user(&mut tr, register.username(), register.password(), register.email(), register.nickname(), register.avatar(), invitor.as_deref()).await?;
     if let Some(secret) = secret_2fa {
         // create 2fa
@@ -80,5 +84,10 @@ pub async fn register_check(check: web::Json<UserRegisterCheckRequest>, state: w
         check.email(),
         check.username(),
     ).await?;
+    Ok(AnnivResponse::ok())
+}
+
+#[post("/user/revoke")]
+pub async fn revoke(revoke: web::Json<IdOnly>, state: web::Data<AppState>) -> Result<impl Responder, Error> {
     Ok(AnnivResponse::ok())
 }

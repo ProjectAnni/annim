@@ -29,7 +29,8 @@ impl AnnivPool {
             AnyKind::MySql => {
                 sqlx::query(r#"
                 CREATE TABLE IF NOT EXISTS anniv_user (
-                    `id`         CHAR(36) PRIMARY KEY,
+                    `id`         INT NOT NULL AUTO_INCREMENT,
+                    `user_id`    CHAR(36) NOT NULL,
                     `inviter_id` CHAR(36) DEFAULT '5e9d2c21-963f-52c3-b832-fd4d3adc96cd', -- default inviter is uuidv5(ns:DNS, 'anni.mmf.moe')
                     `nickname`   VARCHAR(32) NOT NULL,
                     `username`   VARCHAR(32) NOT NULL UNIQUE,
@@ -37,7 +38,10 @@ impl AnnivPool {
                     `password`   VARCHAR(32) NOT NULL,
                     `avatar`     VARCHAR(256) NOT NULL,
 
-                    `register_at` TIMESTAMP NOT NULL
+                    `register_at` TIMESTAMP NOT NULL,
+
+                    PRIMARY KEY(`id`),
+                    KEY(`user_id`)
                 ) DEFAULT CHARSET=utf8mb4;
                 "#)
                     .execute(&self.pool)
@@ -58,12 +62,12 @@ impl AnnivPool {
         match invitor {
             None => {
                 sqlx::query(r#"
-                INSERT INTO anniv_user(`id`, `email`, `username`, `password`, `nickname`, `avatar`) VALUES (?, ?, ?, ?, ?, ?);
+                INSERT INTO anniv_user(`user_id`, `email`, `username`, `password`, `nickname`, `avatar`) VALUES (?, ?, ?, ?, ?, ?);
                 "#)
             }
             Some(invitor) => {
                 sqlx::query(r#"
-                INSERT INTO anniv_user(`invitor`, `id`, `email`, `username`, `password`, `nickname`, `avatar`) VALUES (?, ?, ?, ?, ?, ?, ?);
+                INSERT INTO anniv_user(`invitor`, `user_id`, `email`, `username`, `password`, `nickname`, `avatar`) VALUES (?, ?, ?, ?, ?, ?, ?);
                 "#).bind(invitor)
             }
         }
