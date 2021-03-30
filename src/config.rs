@@ -1,7 +1,7 @@
 use crate::db::AnnivDbConfig;
 use std::path::Path;
 use serde::Deserialize;
-use crate::services::info::AnnivSiteInfo;
+use crate::models::info::AnnivSiteInfo;
 
 #[derive(Deserialize)]
 pub struct AnnivConfig {

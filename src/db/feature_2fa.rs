@@ -1,6 +1,6 @@
 use crate::db::AnnivPool;
 use sqlx::{Executor, Any};
-use crate::services::response::Error;
+use crate::models::response::Error;
 use sqlx::any::AnyKind;
 
 impl AnnivPool {

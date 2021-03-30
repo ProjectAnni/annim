@@ -1,5 +1,5 @@
 use crate::db::AnnivPool;
-use crate::services::response::Error;
+use crate::models::response::Error;
 use sqlx::any::AnyKind;
 use sqlx::{Executor, Any};
 
