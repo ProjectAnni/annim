@@ -29,7 +29,7 @@ impl AnnivPool {
             AnyKind::MySql => {
                 sqlx::query(r#"
                 CREATE TABLE IF NOT EXISTS anniv_user (
-                    `id`         CHAR(36) PRIMARY KEY DEFAULT UUID(),
+                    `id`         CHAR(36) PRIMARY KEY,
                     `inviter_id` CHAR(36) DEFAULT '5e9d2c21-963f-52c3-b832-fd4d3adc96cd', -- default inviter is uuidv5(ns:DNS, 'anni.mmf.moe')
                     `nickname`   VARCHAR(32) NOT NULL,
                     `username`   VARCHAR(32) NOT NULL UNIQUE,
@@ -53,19 +53,21 @@ impl AnnivPool {
     }
 
     pub async fn create_user(executor: impl Executor<'_, Database=Any>,
-                             username: &str, password: &str, email: &str, nickname: &str, avatar: &str, invitor: Option<&str>) -> Result<(), Error> {
+                             username: &str, password: &str, email: &str, nickname: &str, avatar: &str, invitor: Option<&str>) -> Result<String, Error> {
+        let user_uuid = uuid::Uuid::new_v4().to_string();
         match invitor {
             None => {
                 sqlx::query(r#"
-                INSERT INTO anniv_user(`email`, `username`, `password`, `nickname`, `avatar`) VALUES (?, ?, ?, ?, ?);
+                INSERT INTO anniv_user(`id`, `email`, `username`, `password`, `nickname`, `avatar`) VALUES (?, ?, ?, ?, ?, ?);
                 "#)
             }
             Some(invitor) => {
                 sqlx::query(r#"
-                INSERT INTO anniv_user(`invitor`, `email`, `username`, `password`, `nickname`, `avatar`) VALUES (?, ?, ?, ?, ?, ?);
+                INSERT INTO anniv_user(`invitor`, `id`, `email`, `username`, `password`, `nickname`, `avatar`) VALUES (?, ?, ?, ?, ?, ?, ?);
                 "#).bind(invitor)
             }
         }
+            .bind(&user_uuid)
             .bind(email)
             .bind(username)
             .bind(password)
@@ -77,7 +79,7 @@ impl AnnivPool {
                 log::error!("{:?}", e);
                 Error::DatabaseWriteError
             })?;
-        Ok(())
+        Ok(user_uuid)
     }
 
     pub async fn email_username_used(&self, email: Option<&str>, username: Option<&str>) -> Result<(), Error> {

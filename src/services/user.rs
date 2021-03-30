@@ -58,13 +58,13 @@ pub async fn register(register: web::Json<UserRegisterRequest>, state: web::Data
         AnnivPool::invite_use(&mut tr, code.as_ref()).await?;
     }
     // create user and return user info
-    AnnivPool::create_user(&mut tr, register.username(), register.password(), register.email(), register.nickname(), register.avatar(), invitor.as_deref()).await?;
-    let user = state.pool.query_user(register.email()).await?;
+    let user_uuid = AnnivPool::create_user(&mut tr, register.username(), register.password(), register.email(), register.nickname(), register.avatar(), invitor.as_deref()).await?;
     if let Some(secret) = secret_2fa {
         // create 2fa
-        AnnivPool::create_2fa(&mut tr, user.id(), secret).await?;
+        AnnivPool::create_2fa(&mut tr, &user_uuid, secret).await?;
     }
     tr.commit().await.map_err(|_| Error::DatabaseWriteError)?;
+    let user = state.pool.query_user(register.email()).await?;
     Ok(AnnivResponse::data(user))
 }
 

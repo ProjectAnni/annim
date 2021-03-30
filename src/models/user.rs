@@ -9,12 +9,6 @@ pub struct UserInfo {
     avatar: String,
 }
 
-impl UserInfo {
-    pub fn id(&self) -> &str {
-        self.id.as_str()
-    }
-}
-
 #[derive(Deserialize)]
 pub struct UserRegisterRequest {
     username: String,
