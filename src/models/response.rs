@@ -20,6 +20,7 @@ pub enum Error {
 
     UsernameUnavailable,
     EmailUnavailable,
+    InvalidPasswordFormat,
     WrongEmailOrPassword,
     NoUserForRevoke,
 
@@ -64,6 +65,7 @@ impl Error {
 
             Error::UsernameUnavailable => 102000,
             Error::EmailUnavailable => 102001,
+            Error::InvalidPasswordFormat => 102002,
             Error::WrongEmailOrPassword => 102010,
             Error::NoUserForRevoke => 102020,
 

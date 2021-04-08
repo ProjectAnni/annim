@@ -8,6 +8,7 @@ pub struct AnnivConfig {
     pub database: AnnivDbConfig,
     #[serde(rename = "site")]
     pub site_info: AnnivSiteInfo,
+    pub properties: AnnivProperties,
 }
 
 impl AnnivConfig {
@@ -20,4 +21,9 @@ impl AnnivConfig {
     pub fn has_feature(&self, feature: &str) -> bool {
         self.site_info.has_feature(feature)
     }
+}
+
+#[derive(Deserialize)]
+pub struct AnnivProperties {
+    pub bcrypt_cost: u32,
 }

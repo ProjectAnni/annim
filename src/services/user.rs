@@ -62,8 +62,20 @@ pub async fn register(register: web::Json<UserRegisterRequest>, state: web::Data
         // use invite code
         AnnivPool::invite_use(&mut tr, code.as_ref()).await?;
     }
+
+    // verify password, hash with bcrypt
+    let password = if register.password().len() == 64 {
+        bcrypt::hash(register.password(), state.config.properties.bcrypt_cost)
+            .map_err(|e| {
+                log::error!("{:?}", e);
+                Error::FatalError
+            })?
+    } else {
+        return Err(Error::InvalidPasswordFormat);
+    };
+
     // create user and return user id
-    let user_uuid = AnnivPool::create_user(&mut tr, register.username(), register.password(), register.email(), register.nickname(), register.avatar(), invitor.as_deref()).await?;
+    let user_uuid = AnnivPool::create_user(&mut tr, register.username(), &password, register.email(), register.nickname(), register.avatar(), invitor.as_deref()).await?;
     if let Some(secret) = secret_2fa {
         // create 2fa
         AnnivPool::create_2fa(&mut tr, &user_uuid, secret).await?;
