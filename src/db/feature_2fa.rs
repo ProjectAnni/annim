@@ -37,4 +37,21 @@ impl AnnivPool {
             })?;
         Ok(())
     }
+
+    pub async fn query_2fa_secret(&self, user_id: &str) -> Result<Option<String>, Error> {
+        let count = sqlx::query_as::<_, (i32, String, )>("SELECT `user_id`, `secret` FROM anniv_2fa WHERE `user_id` = ?;")
+            .bind(user_id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| {
+                log::error!("{:?}", e);
+                Error::DatabaseReadError
+            })?;
+        match count {
+            Some((_, secret)) => {
+                Ok(Some(secret))
+            }
+            None => Ok(None)
+        }
+    }
 }

@@ -4,9 +4,23 @@ use serde::{Serialize, Deserialize};
 pub struct UserInfo {
     user_id: String,
     username: String,
+    #[serde(skip_serializing)]
+    password: String,
     email: String,
     nickname: String,
     avatar: String,
+}
+
+impl UserInfo {
+    #[inline]
+    pub fn user_id(&self) -> &str {
+        self.user_id.as_str()
+    }
+
+    #[inline]
+    pub fn password(&self) -> &str {
+        self.password.as_str()
+    }
 }
 
 #[derive(Deserialize)]
@@ -75,5 +89,31 @@ impl UserRegisterCheckRequest {
     #[inline]
     pub fn email(&self) -> Option<&str> {
         self.email.as_deref()
+    }
+}
+
+#[derive(Deserialize)]
+pub struct UserLoginRequest {
+    email: String,
+    password: String,
+
+    #[serde(rename = "2fa_code")]
+    code_2fa: Option<String>,
+}
+
+impl UserLoginRequest {
+    #[inline]
+    pub fn email(&self) -> &str {
+        self.email.as_str()
+    }
+
+    #[inline]
+    pub fn password(&self) -> &str {
+        self.password.as_str()
+    }
+
+    #[inline]
+    pub fn code_2fa(&self) -> Option<&str> {
+        self.code_2fa.as_deref()
     }
 }

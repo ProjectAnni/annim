@@ -3,8 +3,9 @@ use crate::AppState;
 use crate::db::AnnivPool;
 use crate::models::response::{AnnivResponse, Error};
 use crate::models::features::{FEATURE_2FA, FEATURE_CLOSE, FEATURE_INVITE};
-use crate::models::user::{UserRegisterRequest, UserRegisterCheckRequest};
+use crate::models::user::{UserRegisterRequest, UserRegisterCheckRequest, UserLoginRequest};
 use crate::models::common::IdOnly;
+use google_authenticator::GoogleAuthenticator;
 
 #[post("/user/register")]
 pub async fn register(register: web::Json<UserRegisterRequest>, state: web::Data<AppState>) -> Result<impl Responder, Error> {
@@ -85,6 +86,34 @@ pub async fn register_check(check: web::Json<UserRegisterCheckRequest>, state: w
         check.username(),
     ).await?;
     Ok(AnnivResponse::ok())
+}
+
+#[post("/user/login")]
+pub async fn login(login: web::Json<UserLoginRequest>, state: web::Data<AppState>) -> Result<impl Responder, Error> {
+    let user = state.pool.query_user(login.email()).await?.ok_or(Error::WrongEmailOrPassword)?;
+    match state.pool.query_2fa_secret(user.user_id()).await? {
+        Some(secret) => {
+            // verify 2fa code if enabled
+            match login.code_2fa() {
+                Some(code) => {
+                    let auth = GoogleAuthenticator::new();
+                    if !auth.verify_code(&secret, &code, 5, 0) {
+                        return Err(Error::Invalid2FACode);
+                    }
+                }
+                None => return Err(Error::Invalid2FACode)
+            }
+        }
+        None => {}
+    }
+
+    // verify password
+    if bcrypt::verify(login.password(), user.password()).map_err(|_| Error::WrongEmailOrPassword)? {
+        // TODO: verified, set cookie
+        Ok(AnnivResponse::ok())
+    } else {
+        Err(Error::WrongEmailOrPassword)
+    }
 }
 
 #[post("/user/revoke")]

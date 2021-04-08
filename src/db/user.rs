@@ -33,7 +33,7 @@ impl AnnivPool {
                     `user_id`    CHAR(36) NOT NULL,
                     `inviter_id` CHAR(36) DEFAULT '5e9d2c21-963f-52c3-b832-fd4d3adc96cd', -- default inviter is uuidv5(ns:DNS, 'anni.mmf.moe')
                     `nickname`   VARCHAR(32) NOT NULL,
-                    `username`   VARCHAR(32) NOT NULL UNIQUE,
+                    `username`   VARCHAR(96) NOT NULL UNIQUE,
                     `email`      VARCHAR(64) NOT NULL UNIQUE,
                     `password`   VARCHAR(32) NOT NULL,
                     `avatar`     VARCHAR(256) NOT NULL,
@@ -121,10 +121,10 @@ impl AnnivPool {
         Ok(())
     }
 
-    pub async fn query_user(&self, email: &str) -> Result<UserInfo, Error> {
+    pub async fn query_user(&self, email: &str) -> Result<Option<UserInfo>, Error> {
         let info = sqlx::query_as::<_, UserInfo>("SELECT * from anniv_user WHERE `email` = ?")
             .bind(email)
-            .fetch_one(&self.pool)
+            .fetch_optional(&self.pool)
             .await
             .map_err(|e| {
                 log::error!("{:?}", e);
