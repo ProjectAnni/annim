@@ -6,6 +6,7 @@ use crate::models::features::{FEATURE_2FA, FEATURE_CLOSE, FEATURE_INVITE};
 use crate::models::user::{UserRegisterRequest, UserRegisterCheckRequest, UserLoginRequest};
 use crate::models::common::IdOnly;
 use google_authenticator::GoogleAuthenticator;
+use actix_session::Session;
 
 #[post("/user/register")]
 pub async fn register(register: web::Json<UserRegisterRequest>, state: web::Data<AppState>) -> Result<impl Responder, Error> {
@@ -101,7 +102,7 @@ pub async fn register_check(check: web::Json<UserRegisterCheckRequest>, state: w
 }
 
 #[post("/user/login")]
-pub async fn login(login: web::Json<UserLoginRequest>, state: web::Data<AppState>) -> Result<impl Responder, Error> {
+pub async fn login(login: web::Json<UserLoginRequest>, state: web::Data<AppState>, session: Session) -> Result<impl Responder, Error> {
     let user = state.pool.query_user(login.email()).await?.ok_or(Error::WrongEmailOrPassword)?;
     match state.pool.query_2fa_secret(user.user_id()).await? {
         Some(secret) => {
@@ -121,11 +122,18 @@ pub async fn login(login: web::Json<UserLoginRequest>, state: web::Data<AppState
 
     // verify password
     if bcrypt::verify(login.password(), user.password()).map_err(|_| Error::WrongEmailOrPassword)? {
-        // TODO: verified, set cookie
+        // verified, set cookie
+        session.insert("user_id", user.user_id()).map_err(|_| Error::FatalError)?;
         Ok(AnnivResponse::ok())
     } else {
         Err(Error::WrongEmailOrPassword)
     }
+}
+
+#[post("/user/logout")]
+pub async fn logout(session: Session) -> Result<impl Responder, Error> {
+    session.clear();
+    Ok(AnnivResponse::ok())
 }
 
 #[post("/user/revoke")]

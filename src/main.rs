@@ -5,6 +5,7 @@ mod models;
 
 use actix_web::{App, HttpServer, web};
 use actix_web::middleware::Logger;
+use actix_session::CookieSession;
 use crate::config::AnnivConfig;
 use log::LevelFilter;
 
@@ -30,11 +31,20 @@ async fn main() -> anyhow::Result<()> {
         App::new()
             .app_data(state.clone())
             .wrap(Logger::default())
+            .wrap(CookieSession::signed(&[0; 32])
+                .name(state.config.properties.session())
+                .http_only(true)
+                .lazy(true)
+                .secure(false)
+            )
             .service(
                 web::scope("/api")
                     .service(services::info::info)
                     .service(services::user::register)
                     .service(services::user::register_check)
+                    .service(services::user::login)
+                    .service(services::user::logout)
+                    .service(services::user::revoke)
             )
     })
         .bind("localhost:6655")?

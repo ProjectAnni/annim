@@ -25,5 +25,12 @@ impl AnnivConfig {
 
 #[derive(Deserialize)]
 pub struct AnnivProperties {
+    session: String,
     pub bcrypt_cost: u32,
+}
+
+impl AnnivProperties {
+    pub fn session(&self) -> &str {
+        self.session.as_str()
+    }
 }
