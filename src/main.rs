@@ -1,5 +1,6 @@
 mod model;
 
+use std::sync::Mutex;
 use anni_repo::db::RepoDatabaseRead;
 use async_graphql::{EmptyMutation, EmptySubscription, Schema};
 use async_graphql::http::{GraphQLPlaygroundConfig, playground_source};
@@ -16,10 +17,10 @@ async fn graphql_playground() -> impl IntoResponse {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let manager = RepoDatabaseRead::new("./repo.db").await?;
+    let manager = RepoDatabaseRead::new("./repo.db")?;
 
     let schema = Schema::build(AnnivQuery, EmptyMutation, EmptySubscription)
-        .data(manager)
+        .data(Mutex::new(manager))
         .finish();
 
     let app = Route::new()

@@ -1,3 +1,4 @@
+use std::sync::Mutex;
 use anni_repo::db::RepoDatabaseRead;
 use async_graphql::{Context, Object, SimpleObject, ComplexObject};
 
@@ -16,10 +17,10 @@ struct AlbumInfo {
 #[ComplexObject]
 impl AlbumInfo {
     async fn discs(&self, ctx: &Context<'_>) -> anyhow::Result<Vec<DiscInfo>> {
-        let manager = ctx.data_unchecked::<RepoDatabaseRead>();
-        let rows = manager.discs(self.album_id.parse()?).await?;
+        let manager = ctx.data_unchecked::<Mutex<RepoDatabaseRead>>();
+        let rows = manager.lock().unwrap().get_discs(self.album_id.parse()?)?;
         Ok(rows.into_iter().map(|r| DiscInfo {
-            album_id: r.album_id.to_string(),
+            album_id: r.album_id.0.to_string(),
             disc_id: r.disc_id,
             title: r.title,
             artist: r.artist,
@@ -44,10 +45,10 @@ struct DiscInfo {
 #[ComplexObject]
 impl DiscInfo {
     async fn tracks(&self, ctx: &Context<'_>) -> anyhow::Result<Vec<TrackInfo>> {
-        let manager = ctx.data_unchecked::<RepoDatabaseRead>();
-        let rows = manager.tracks(self.album_id.parse()?, self.disc_id).await?;
+        let manager = ctx.data_unchecked::<Mutex<RepoDatabaseRead>>();
+        let rows = manager.lock().unwrap().get_tracks(self.album_id.parse()?, self.disc_id)?;
         Ok(rows.into_iter().map(|r| TrackInfo {
-            album_id: r.album_id.to_string(),
+            album_id: r.album_id.0.to_string(),
             disc_id: r.disc_id,
             track_id: r.track_id,
             title: r.title,
@@ -57,10 +58,10 @@ impl DiscInfo {
     }
 
     async fn track(&self, ctx: &Context<'_>, track_id: u8) -> anyhow::Result<Option<TrackInfo>> {
-        let manager = ctx.data_unchecked::<RepoDatabaseRead>();
-        let row = manager.track(self.album_id.parse()?, self.disc_id, track_id).await?;
+        let manager = ctx.data_unchecked::<Mutex<RepoDatabaseRead>>();
+        let row = manager.lock().unwrap().get_track(self.album_id.parse()?, self.disc_id, track_id)?;
         Ok(row.map(|r| TrackInfo {
-            album_id: r.album_id.to_string(),
+            album_id: r.album_id.0.to_string(),
             disc_id: r.disc_id,
             track_id: r.track_id,
             title: r.title,
@@ -86,10 +87,10 @@ pub struct AnnivQuery;
 #[Object]
 impl AnnivQuery {
     async fn album(&self, ctx: &Context<'_>, album_id: String) -> anyhow::Result<AlbumInfo> {
-        let manager = ctx.data_unchecked::<RepoDatabaseRead>();
-        let row = manager.album(album_id.parse()?).await?.unwrap();
+        let manager = ctx.data_unchecked::<Mutex<RepoDatabaseRead>>();
+        let row = manager.lock().unwrap().get_album(album_id.parse()?)?.unwrap();
         Ok(AlbumInfo {
-            album_id: row.album_id.to_string(),
+            album_id: row.album_id.0.to_string(),
             title: row.title,
             edition: row.edition,
             catalog: row.catalog,
