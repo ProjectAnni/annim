@@ -109,25 +109,45 @@ pub struct AnnivQuery;
 
 #[Object]
 impl AnnivQuery {
-    async fn album(&self, ctx: &Context<'_>, album_id: String) -> anyhow::Result<AlbumInfo> {
+    async fn album(
+        &self,
+        ctx: &Context<'_>,
+        album_id: String,
+    ) -> anyhow::Result<Option<AlbumInfo>> {
         let manager = ctx.data_unchecked::<Mutex<RepoDatabaseRead>>();
-        let row = manager
+        Ok(manager
             .lock()
             .unwrap()
             .get_album(album_id.parse()?)?
-            .unwrap();
-        Ok(AlbumInfo {
-            album_id: row.album_id.0,
-            title: row.title,
-            edition: row.edition,
-            catalog: row.catalog,
-            artist: row.artist,
-            release_date: row.release_date,
-            album_type: row.album_type,
-        })
+            .map(|row| AlbumInfo {
+                album_id: row.album_id.0,
+                title: row.title,
+                edition: row.edition,
+                catalog: row.catalog,
+                artist: row.artist,
+                release_date: row.release_date,
+                album_type: row.album_type,
+            }))
     }
 
-    // async fn disc(&self, album_id: String, disc_id: u8) -> DiscInfo {
-    //     DiscInfo { name }
-    // }
+    async fn disc(
+        &self,
+        ctx: &Context<'_>,
+        album_id: String,
+        disc_id: u8,
+    ) -> anyhow::Result<Option<DiscInfo>> {
+        let manager = ctx.data_unchecked::<Mutex<RepoDatabaseRead>>();
+        Ok(manager
+            .lock()
+            .unwrap()
+            .get_disc(album_id.parse()?, disc_id)?
+            .map(|row| DiscInfo {
+                album_id: row.album_id.0,
+                disc_id: row.disc_id,
+                title: row.title,
+                artist: row.artist,
+                catalog: row.catalog,
+                disc_type: row.disc_type,
+            }))
+    }
 }
