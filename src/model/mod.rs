@@ -1,7 +1,17 @@
-use std::sync::Mutex;
 use anni_repo::db::RepoDatabaseRead;
-use async_graphql::{Context, Object, SimpleObject, ComplexObject};
+use async_graphql::{
+    ComplexObject, Context, EmptyMutation, EmptySubscription, Object, Schema, SimpleObject,
+};
+use std::sync::Mutex;
 use uuid::Uuid;
+
+pub type AppSchema = Schema<AnnivQuery, EmptyMutation, EmptySubscription>;
+
+pub fn build_schema(manager: RepoDatabaseRead) -> AppSchema {
+    Schema::build(AnnivQuery, EmptyMutation, EmptySubscription)
+        .data(Mutex::new(manager))
+        .finish()
+}
 
 #[derive(SimpleObject)]
 #[graphql(complex)]
@@ -20,14 +30,17 @@ impl AlbumInfo {
     async fn discs(&self, ctx: &Context<'_>) -> anyhow::Result<Vec<DiscInfo>> {
         let manager = ctx.data_unchecked::<Mutex<RepoDatabaseRead>>();
         let rows = manager.lock().unwrap().get_discs(self.album_id.clone())?;
-        Ok(rows.into_iter().map(|r| DiscInfo {
-            album_id: r.album_id.0,
-            disc_id: r.disc_id,
-            title: r.title,
-            artist: r.artist,
-            catalog: r.catalog,
-            disc_type: r.disc_type,
-        }).collect())
+        Ok(rows
+            .into_iter()
+            .map(|r| DiscInfo {
+                album_id: r.album_id.0,
+                disc_id: r.disc_id,
+                title: r.title,
+                artist: r.artist,
+                catalog: r.catalog,
+                disc_type: r.disc_type,
+            })
+            .collect())
     }
 }
 
@@ -47,20 +60,29 @@ struct DiscInfo {
 impl DiscInfo {
     async fn tracks(&self, ctx: &Context<'_>) -> anyhow::Result<Vec<TrackInfo>> {
         let manager = ctx.data_unchecked::<Mutex<RepoDatabaseRead>>();
-        let rows = manager.lock().unwrap().get_tracks(self.album_id, self.disc_id)?;
-        Ok(rows.into_iter().map(|r| TrackInfo {
-            album_id: r.album_id.0,
-            disc_id: r.disc_id,
-            track_id: r.track_id,
-            title: r.title,
-            artist: r.artist,
-            track_type: r.track_type,
-        }).collect())
+        let rows = manager
+            .lock()
+            .unwrap()
+            .get_tracks(self.album_id, self.disc_id)?;
+        Ok(rows
+            .into_iter()
+            .map(|r| TrackInfo {
+                album_id: r.album_id.0,
+                disc_id: r.disc_id,
+                track_id: r.track_id,
+                title: r.title,
+                artist: r.artist,
+                track_type: r.track_type,
+            })
+            .collect())
     }
 
     async fn track(&self, ctx: &Context<'_>, track_id: u8) -> anyhow::Result<Option<TrackInfo>> {
         let manager = ctx.data_unchecked::<Mutex<RepoDatabaseRead>>();
-        let row = manager.lock().unwrap().get_track(self.album_id, self.disc_id, track_id)?;
+        let row = manager
+            .lock()
+            .unwrap()
+            .get_track(self.album_id, self.disc_id, track_id)?;
         Ok(row.map(|r| TrackInfo {
             album_id: r.album_id.0,
             disc_id: r.disc_id,
@@ -89,7 +111,11 @@ pub struct AnnivQuery;
 impl AnnivQuery {
     async fn album(&self, ctx: &Context<'_>, album_id: String) -> anyhow::Result<AlbumInfo> {
         let manager = ctx.data_unchecked::<Mutex<RepoDatabaseRead>>();
-        let row = manager.lock().unwrap().get_album(album_id.parse()?)?.unwrap();
+        let row = manager
+            .lock()
+            .unwrap()
+            .get_album(album_id.parse()?)?
+            .unwrap();
         Ok(AlbumInfo {
             album_id: row.album_id.0,
             title: row.title,
@@ -103,9 +129,5 @@ impl AnnivQuery {
 
     // async fn disc(&self, album_id: String, disc_id: u8) -> DiscInfo {
     //     DiscInfo { name }
-    // }
-    //
-    // async fn playlist(&self, id: String) -> PlaylistInfo {
-    //     PlaylistInfo::new(id.0)
     // }
 }

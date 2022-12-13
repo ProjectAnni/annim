@@ -1,16 +1,20 @@
 mod model;
 
-use std::sync::Mutex;
 use anni_repo::db::RepoDatabaseRead;
-use async_graphql::{EmptyMutation, EmptySubscription, Schema};
-use async_graphql::http::{GraphQLPlaygroundConfig, playground_source};
-use poem::listener::TcpListener;
-use poem::{get, handler, IntoResponse, Route, Server};
-use async_graphql_poem::GraphQL;
-use poem::web::Html;
-use crate::model::AnnivQuery;
+use async_graphql::http::{playground_source, GraphQLPlaygroundConfig};
+use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
+use axum::{
+    response::{Html, IntoResponse},
+    routing::get,
+    Extension, Router, Server,
+};
+use model::{build_schema, AppSchema};
+use std::net::SocketAddr;
 
-#[handler]
+async fn graphql_handler(schema: Extension<AppSchema>, req: GraphQLRequest) -> GraphQLResponse {
+    schema.execute(req.into_inner()).await.into()
+}
+
 async fn graphql_playground() -> impl IntoResponse {
     Html(playground_source(GraphQLPlaygroundConfig::new("/graphql")))
 }
@@ -18,15 +22,16 @@ async fn graphql_playground() -> impl IntoResponse {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let manager = RepoDatabaseRead::new("./repo.db")?;
+    let schema = build_schema(manager);
 
-    let schema = Schema::build(AnnivQuery, EmptyMutation, EmptySubscription)
-        .data(Mutex::new(manager))
-        .finish();
+    let app = Router::new()
+        .route("/graphql", get(graphql_playground).post(graphql_handler))
+        .layer(Extension(schema));
 
-    let app = Route::new()
-        .at("/graphql", get(graphql_playground).post(GraphQL::new(schema)));
-    Server::new(TcpListener::bind("127.0.0.1:3000"))
-        .run(app)
-        .await?;
+    let addr = SocketAddr::from(([127, 0, 0, 1], 9929));
+    Server::bind(&addr)
+        .serve(app.into_make_service())
+        .await
+        .unwrap();
     Ok(())
 }
